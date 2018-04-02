@@ -1,9 +1,13 @@
 package practicaltest01var04.eim.systems.cs.pub.ro.practicaltest01var04;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -14,6 +18,16 @@ public class PracticalTest01Var04MainActivity extends Activity {
     private Button pressMeButton, pressMeTooButton, secondaryActivityButton;
     private TextView pressMeTextView, pressMeTooTextView;
     private Integer counterPressMe = 0, counterPressMeToo = 0;
+    private int serviceStatus = 0;
+    private IntentFilter intentFilter = new IntentFilter();
+
+    private MessageBroadcastReceiver messageBroadcastReceiver = new MessageBroadcastReceiver();
+    private class MessageBroadcastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d("[Message]", intent.getStringExtra("message"));
+        }
+    }
 
     private ButtonClickListener buttonClickListener = new ButtonClickListener();
     private class ButtonClickListener implements View.OnClickListener {
@@ -30,6 +44,14 @@ public class PracticalTest01Var04MainActivity extends Activity {
                     counterPressMeToo++;
                     pressMeTooTextView.setText(String.valueOf(counterPressMeToo));
                     break;
+            }
+            if (counterPressMe + counterPressMeToo > 25
+                    && serviceStatus == 0) {
+                Intent intent = new Intent(getApplicationContext(), PracticalTest01Var04Service.class);
+                intent.putExtra("firstNumber", counterPressMe);
+                intent.putExtra("secondNumber", counterPressMeToo);
+                getApplicationContext().startService(intent);
+                serviceStatus = 1;
             }
         }
     }
@@ -60,6 +82,8 @@ public class PracticalTest01Var04MainActivity extends Activity {
                 startActivityForResult(intent, 101);
             }
         });
+
+        intentFilter.addAction("medii");
     }
 
     @Override
@@ -92,5 +116,24 @@ public class PracticalTest01Var04MainActivity extends Activity {
         } else {
             pressMeTooButton.setText("0");
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        Intent intent = new Intent(this, PracticalTest01Var04Service.class);
+        stopService(intent);
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(messageBroadcastReceiver, intentFilter);
+    }
+
+    @Override
+    protected void onPause() {
+        unregisterReceiver(messageBroadcastReceiver);
+        super.onPause();
     }
 }
